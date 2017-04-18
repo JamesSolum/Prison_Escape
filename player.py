@@ -85,13 +85,8 @@ class player(object):
 			loc  tuple
 		Moves locX 
 		"""
-		# x = loc[0] + self.location[0]
-		# y = loc[1] + self.location[1]
 		point = addTuple(loc, self.location)
 
-		# Check if location is out of bounds
-		#if abs(x) > border or abs(y) > border:
-		#	self.OutOfBounds = True
 		if abs(point[0]) > border or abs(point[1]) > border:
 			self.OutOfBounds = True
 
@@ -117,9 +112,9 @@ class player(object):
 
 		Give our player a random location other than (0,0)
 		"""
-		loc = (rand.randint(-self.border, self.border) - border, rand.randint(-self.border, self.border))
+		loc = (rand.randint(-self.border, self.border), rand.randint(-self.border, self.border))
 		while(loc == (0,0)):
-			loc = rand.randint(-self.border, self.border) - border, rand.randint(-self.border, self.border)
+			loc = (rand.randint(-self.border, self.border), rand.randint(-self.border, self.border))
 		self.location = loc
 
 	def generatePerimeter(self, perim=1):
@@ -151,8 +146,8 @@ class player(object):
 
 			points.append((x,y)) # Append (newX, newY)
 
-		return points # Have not tested this # Have Not tested this!!!
-
+		return points  # Have Not tested this!!!
+	
 class billy(player):
 
 	def __init__(self, border, loc=(0,0), weapon=False, probability=[1/3, 1/3, 1/3]):
@@ -325,7 +320,7 @@ class guard(player):
 		Checks 1 of 2 things
 
 			1. If current location is outside of border
-				Returns True or False
+				Returns True if outside of border or False if within the border
 
 			2. If any points are outside of border
 				returns list of all points inside or on Border
@@ -350,11 +345,11 @@ class guard(player):
 		Randomly moves player given a set of possible "movements" after checking and removing any "movements" that are outside the border
 			Note! This is not a list of locations, but a list of directions desribed as tuples
 
-		random Move will check if it's > border then update location
+		random Move will check if it possible location is > border then updates location
 		"""
 		checks = list(map(lambda x: addtuple(x, self.location), points)) # convert those movements into locations
 		points = self.outsideBorder(checks) # produce a new list of locations that are not outside the border
-		self.setLocation(rand.choice(points)) # set location of Bishop to one of those locations
+		self.setLocation(rand.choice(points)) # randomly set location of player to one of those locations
 
 class squareGuard(guard):
 	"""
@@ -362,18 +357,18 @@ class squareGuard(guard):
 
 	Guard that traverses a square perimeter around the center (0,0)
 	"""
-	def __init__(self, border):
+	def __init__(self, Sqborder):
 		"""
 		Initialize Perimeter Guard
 
 		Patrols a square perimeter
 		"""
 		# Set location on the perimeter
-		x = random.choice(-border, border)
-		y = random.choice(-border, border)
+		x = random.choice(-Sqborder, Sqborder)
+		y = random.choice(-Sqborder, Sqborder)
 		loc = (x,y)
-
 		super().__init__(border, loc)
+		self.probability = [1/2, 1/2] # left or right
 
 	def randomStep(self): # This is more complicated than I want it to be
 		options = (-1,1)
@@ -426,7 +421,8 @@ class pathGuard(guard):
 		loc = rand.choice(trail)
 		super().__init__(border, loc)
 		self.trail = trail
-		self.index = trail.index(loc)
+		self.index = trail.index(loc) # pointer to spot on trail
+		self.probability = [1/2, 1/2] # left or right
 
 	def randomStep(self):
 		"""
@@ -474,6 +470,9 @@ class pathGuard(guard):
 			raise e2
 			return False # If so, raises exceptions and returns False
 
+	def lineOfSight(self):
+		# WRITE HERE
+
 class bishop(guard):
 	"""
 	Bishop
@@ -487,6 +486,8 @@ class bishop(guard):
 		Default is some random location.
 		"""
 		super().__init__(border, location)
+		self.probX = [1/2, 1/2] # left or right
+		self.probY = [1/2, 1/2] # up or down
 
 	def randomStep(self, stepSize=1):
 		"""
@@ -498,8 +499,52 @@ class bishop(guard):
 		points = list(itertools.product((stepSize, -stepSize), (stepSize, -stepSize))) # Produces a list of all possible movements
 		self.randomMove_from_movements(points)
 
-	def lineOfSight(self):
-		# Write here
+	def lineOfSight(self, Billy, amount=0.1):
+		"""
+		Line of Sight 
+
+			amount = how much we adjust probabilities. Default is 0.1 (10%)
+
+		Checks if Billy is close by.  If so increases the probability by %10 to go towards billy.
+		"""
+		target = billy.location()
+		perimeter = self.generatePerimeter()
+
+		# check if target is in perimeter
+		if target in perimeter:
+			x = target[0] - self.locX()
+			y = target[1] - self.locY()
+
+			# Adjust probabilities
+			self.adjustProbabilities(x, self.probX, amount)
+			self.adjustProbabilities(y, self.probY, amount)
+
+			# Calculate new random location with new probabilties
+			options = [-1,1]
+			x = int(numpy.random.choice(options, 1, self.probX))
+			y = int(numpy.random.choice(options, 1, self.probY))
+
+			self.setLocation((x,y)) # update locations
+
+		else: # If target is not in perimeter just do a random step
+			self.randomStep()
+
+	def adjustProbabilities(self, x, probability, amount):
+			"""
+			Adjust Probabilities
+
+				x: difference between locations
+				probability: probability for that movement
+				amount: amount to change
+
+				if the change is 1 or -1 change probabilities, else no change.
+			"""
+			if x == 1:
+				probability[1] += amount
+				probability[0] -= amount
+			elif x == -1:
+				probability[1] -= amount
+				probability[0] += amount
 
 class rook(guard):
 	"""
@@ -514,6 +559,7 @@ class rook(guard):
 		Just uses general guard class.  
 		"""
 		super().__init__(border, location)
+		self.probability = [1/4, 1/4, 1/4, 1/4] #up, down, left, right
 
 	def randomStep(self, stepSize=1):
 		"""
@@ -522,16 +568,67 @@ class rook(guard):
 		Randomly step left, right, up or down, within the border
 		Step size is default 1
 		"""
-		points = [(stepSize,0), (0,stepSize), (-stepSize,0), (0,-stepSize)] # all possibel paths
+		points = [(stepSize,0), (0,stepSize), (-stepSize,0), (0,-stepSize)] # all possible paths
 		self.randomMove_from_movements(points)
 
 	def lineOfSight(self):
 		# Write here
 
 class knight(guard):
-	# Write Stuff Here
+	"""
+	Knight
+
+	Guard that moves in an "L" pattern
+	"""
+	def __init__(self, border, location=self.setRandomLocation()):
+		"""
+		Initializes Knight
+
+		Just uses general guard class.
+		"""
+		super().__init__(border, location)
+		self.probability = [1/4, 1/4, 1/4, 1/4]  # Top left, top right, bottom right, bottom left.
+
+	def randomStep(self):
+		vertOrHoriz = rand.choice((1,0)) # Up/down or left/right
+		longL = rand.choice(1,-1) # positive or negative for long part of "L"
+		shortL = rand.choice(1,-1) # postive or negative for short part of the "L"
+
+		if vertOrHoriz == 0:
+			self.moveX(longL)
+			self.moveX(longL)
+			self.moveX(longL)
+			self.moveY(shortL)
+		else:
+			self.moveY(longL)
+			self.moveY(longL)
+			self.moveY(longL)
+			self.moveX(shortL)
 
 class teleporter(guard):
-	# Write stuff here
+	"""
+	Teleporter
+
+	Guard that randomly jumps within the board
+	"""
+	def __init__(self, border, location=self.setRandomLocation()):
+		"""
+		Initialize Teleporter
+
+		General guard class
+		"""
+		super().__init__(border, location)
+
+	def randomStep(self):
+		"""
+		Random Step
+
+		Randomly chooses a point inside the board and sets the 
+		location of the guard to that point
+		"""
+		border = self.border
+		x = rand.randrange(-border, border+1)
+		y = rand.randrange(-border, border+1)
+		self.setLocation((x,y))
 
 
