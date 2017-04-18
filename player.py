@@ -62,7 +62,6 @@ class player(object):
 		"""
 		self.location = location
 		self.OutOfBounds = False
-		self.weapon = False
 
 	def locX(self):
 		# returns x value of location
