@@ -308,7 +308,7 @@ class billy(player):
 
 class guard(player):
 
-	def __init__(self, location, border, center=(0,0)):
+	def __init__(self, border, location, center=(0,0)):
 		"""
 		Generic Guard Class
 
@@ -399,7 +399,7 @@ class squareGuard(guard):
 
 class pathGuard(guard):
 	"""
-	Generic Guard
+	Path Guard
 
 	Guard that traverses some path, represented as a list of points called Trail
 	"""
@@ -488,6 +488,22 @@ class bishop(guard):
 		points = self.outsideBorder(checks) # produce a new list of locations that are not outside the border
 		self.setLocation(rand.choice(points)) # set location of Bishop to one of those locations
 
+	def lineOfSight(self):
+		# Write here
+
+class rook(guard):
+	"""
+	Rook
+
+	Guard that moves up, down, left, or right
+	"""
+	def __init__(self, border, location=self.setRandomLocation()):
+		super().__init__(border, location)
+
+	def randomStep(self, stepSize=1):
+
+	def lineOfSight(self):
+		# Write here
 
 
 
