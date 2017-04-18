@@ -46,7 +46,6 @@ def addTuple(t1, t2):
 		y = t1[1] + t2[1]
 		return (x,y)
 
-
 #### Class ####
 
 class player(object):
@@ -63,6 +62,7 @@ class player(object):
 		"""
 		self.location = location
 		self.OutOfBounds = False
+		self.weapon = False
 
 	def locX(self):
 		# returns x value of location
@@ -152,7 +152,6 @@ class player(object):
 			points.append((x,y)) # Append (newX, newY)
 
 		return points # Have not tested this # Have Not tested this!!!
-
 
 class billy(player):
 
@@ -344,6 +343,19 @@ class guard(player):
 					goodPoints.append(point)
 			return goodPoints
 
+	def randomMove_from_movements(self, points):
+		"""
+		Random Move from Movements
+
+		Randomly moves player given a set of possible "movements" after checking and removing any "movements" that are outside the border
+			Note! This is not a list of locations, but a list of directions desribed as tuples
+
+		random Move will check if it's > border then update location
+		"""
+		checks = list(map(lambda x: addtuple(x, self.location), points)) # convert those movements into locations
+		points = self.outsideBorder(checks) # produce a new list of locations that are not outside the border
+		self.setLocation(rand.choice(points)) # set location of Bishop to one of those locations
+
 class squareGuard(guard):
 	"""
 	Square Guard
@@ -484,9 +496,7 @@ class bishop(guard):
 		Step Size is default 1
 		"""
 		points = list(itertools.product((stepSize, -stepSize), (stepSize, -stepSize))) # Produces a list of all possible movements
-		checks = list(map(lambda x: addtuple(x, self.location), points)) # convert those movements into locations
-		points = self.outsideBorder(checks) # produce a new list of locations that are not outside the border
-		self.setLocation(rand.choice(points)) # set location of Bishop to one of those locations
+		self.randomMove_from_movements(points)
 
 	def lineOfSight(self):
 		# Write here
@@ -498,52 +508,30 @@ class rook(guard):
 	Guard that moves up, down, left, or right
 	"""
 	def __init__(self, border, location=self.setRandomLocation()):
+		"""
+		Initializes Rook
+
+		Just uses general guard class.  
+		"""
 		super().__init__(border, location)
 
 	def randomStep(self, stepSize=1):
+		"""
+		Random Step
+
+		Randomly step left, right, up or down, within the border
+		Step size is default 1
+		"""
+		points = [(stepSize,0), (0,stepSize), (-stepSize,0), (0,-stepSize)] # all possibel paths
+		self.randomMove_from_movements(points)
 
 	def lineOfSight(self):
 		# Write here
 
+class knight(guard):
+	# Write Stuff Here
 
-
-
-
-
-
-
-
-				
-
-
-
-
-		
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+class teleporter(guard):
+	# Write stuff here
 
 
