@@ -60,8 +60,11 @@ class player(object):
 		Initialized player with:
 			Location   tuple
 		"""
-		self.location = location
+		self.border = border
 		self.OutOfBounds = False
+		self.location = location
+		if self.location == float("inf"):
+			self.setRandomLocation(self.border)
 
 	def locX(self):
 		# returns x value of location
@@ -85,7 +88,8 @@ class player(object):
 		Moves locX 
 		"""
 		point = addTuple(loc, self.location)
-
+		border = self.border
+		
 		if abs(point[0]) > border or abs(point[1]) > border:
 			self.OutOfBounds = True
 
@@ -105,15 +109,15 @@ class player(object):
 		"""
 		self.move((0,y))
 
-	def setRandomLocation(self):
+	def setRandomLocation(self, border):
 		"""
 		Random Location
 
 		Give our player a random location other than (0,0)
 		"""
-		loc = (rand.randint(-self.border, self.border), rand.randint(-self.border, self.border))
+		loc = (rand.randint(-border, border), rand.randint(-border, border))
 		while(loc == (0,0)):
-			loc = (rand.randint(-self.border, self.border), rand.randint(-self.border, self.border))
+			loc = (rand.randint(-border, border), rand.randint(-border, border))
 		self.location = loc
 
 	def generatePerimeter(self, perim=1):
@@ -149,13 +153,14 @@ class player(object):
 	
 class billy(player):
 
-	def __init__(self, border, loc=(0,0), weapon=False, probability=[1/3, 1/3, 1/3]):
+	def __init__(self, border, babes=(0,0), weapon=False, probability=[1/3, 1/3, 1/3]):
 		"""
 		Billy Class
 
 		Implements random walk algorithms, smart Billy, and Line of Sight
 		"""
-		super().__init__(border, location)
+
+		super().__init__(border, babes)
 		self.weapon = weapon
 		self.probX = probability
 		self.probY = probability
@@ -215,7 +220,7 @@ class billy(player):
 		Every step from the center he is 10% more likely to move towards the closest border
 		"""
 
-		# Write here
+		return 1
 
 	def superBilly(self):
 		"""
@@ -224,7 +229,7 @@ class billy(player):
 		Combines all of Billy's abilities to update his position
 		"""
 
-		# Write here
+		return 1
 
 	def abstractLineOfSight(self, walk, guard, rook, bishop, knight, teleporter): # This is more complicated than I want it to be.  Maybe use the new Generate Perimeter Function.
 		"""
@@ -312,6 +317,7 @@ class guard(player):
 		super().__init__(border, location)
 		self.center = center
 
+
 	def outsideBorder(self, points=None):
 		"""
 		Outside Border
@@ -324,8 +330,8 @@ class guard(player):
 			2. If any points are outside of border
 				returns list of all points inside or on Border
 		"""
+		border = self.border
 		if not points:
-			border = self.border
 			if abs(self.locX) > border or abs(self.locY) > border:
 				return True # If outside of Border
 			else:
@@ -346,7 +352,7 @@ class guard(player):
 
 		random Move will check if it possible location is > border then updates location
 		"""
-		checks = list(map(lambda x: addtuple(x, self.location), points)) # convert those movements into locations
+		checks = list(map(lambda x: addTuple(x, self.location), points)) # convert those movements into locations
 		points = self.outsideBorder(checks) # produce a new list of locations that are not outside the border
 		self.setLocation(rand.choice(points)) # randomly set location of player to one of those locations
 
@@ -362,28 +368,29 @@ class squareGuard(guard):
 
 		Patrols a square perimeter
 		"""
-		# Set location on the perimeter
-		x = random.choice(-Sqborder, Sqborder)
-		y = random.choice(-Sqborder, Sqborder)
+		# Set location on a corner of the perimeter
+		x = rand.choice((-Sqborder, Sqborder))
+		y = rand.choice((-Sqborder, Sqborder))
 		loc = (x,y)
+		border = Sqborder + 1 # Just make the border of the board bigger than our perimeter. 
 		super().__init__(border, loc)
+
+		self.perimeter = Sqborder
 		self.probability = [1/2, 1/2] # left or right
 
 	def randomStep(self): # This is more complicated than I want it to be
 		options = (-1,1)
 		ops = len(options) 
-		bDist = self.border
-		center = self.center
-
+		bDist = self.perimeter
           
         # Where corners should be
-		cornerX1 = center[0] + bDist # right
-		cornerX2 = center[0] - bDist # left
-		cornerY1 = center[1] + bDist # top
-		cornerY2 = center[1] - bDist # bottom
+		cornerX1 = bDist # right
+		cornerX2 = bDist # left
+		cornerY1 = bDist # top
+		cornerY2 = bDist # bottom
         
         # Check if it's in between the corners
-		x = randrange(0,2)
+		x = rand.randrange(0,2)
 		if (self.location == (cornerX1, cornerY1)): # top right corner
 			movOps = ((-1,0), (0,-1))
 			self.move(movOps[x])
@@ -397,9 +404,9 @@ class squareGuard(guard):
 			movOps = ((1,0),(0,1))
 			self.move(movOps[x])
 		elif self.locX() == cornerX1 or self.locX() == cornerX2: # If the location is on the far left or right
-			self.moveY(options[randrange(0,ops)])
+			self.moveY(options[rand.randrange(0,ops)])
 		elif self.locY() == cornerY1 or self.locY() == cornerY2: # If the location is not on the top or bottom
-			self.moveX(options[randrange(0, ops)])
+			self.moveX(options[rand.randrange(0, ops)])
 		else:
 			raise Exception('ERROR: Guard Random Border Step') # This Needs some work
 
@@ -471,6 +478,7 @@ class pathGuard(guard):
 
 	def lineOfSight(self):
 		# WRITE HERE
+		return 1
 
 class bishop(guard):
 	"""
@@ -478,12 +486,13 @@ class bishop(guard):
 
 	Guard that moves in diagonal movements
 	"""
-	def __init__(self, border, location=self.setRandomLocation()):
+	def __init__(self, border, location=float("inf")):
 		"""
 		Initializes Bishop
 
 		Default is some random location.
 		"""
+
 		super().__init__(border, location)
 		self.probX = [1/2, 1/2] # left or right
 		self.probY = [1/2, 1/2] # up or down
@@ -551,7 +560,7 @@ class rook(guard):
 
 	Guard that moves up, down, left, or right
 	"""
-	def __init__(self, border, location=self.setRandomLocation()):
+	def __init__(self, border, location=float("inf")):
 		"""
 		Initializes Rook
 
@@ -572,6 +581,7 @@ class rook(guard):
 
 	def lineOfSight(self):
 		# Write here
+		return 1
 
 class knight(guard):
 	"""
@@ -579,7 +589,7 @@ class knight(guard):
 
 	Guard that moves in an "L" pattern
 	"""
-	def __init__(self, border, location=self.setRandomLocation()):
+	def __init__(self, border, location=float("inf")):
 		"""
 		Initializes Knight
 
@@ -610,7 +620,7 @@ class teleporter(guard):
 
 	Guard that randomly jumps within the board
 	"""
-	def __init__(self, border, location=self.setRandomLocation()):
+	def __init__(self, border, location=float("inf")):
 		"""
 		Initialize Teleporter
 
