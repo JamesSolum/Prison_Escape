@@ -39,12 +39,21 @@ The player class will be the blueprints for:
 import random as rand # For random movements
 import numpy # For weighting choices with probabilities
 import itertools
+import math # for square root in distance function
 
 #### Helper Functions ####
 def addTuple(t1, t2):
 		x = t1[0] + t2[0]
 		y = t1[1] + t2[1]
 		return (x,y)
+
+def distance(t1, t2):
+	x1 = t1[0]
+	y1 = t1[1]
+	x2 = t2[0]
+	y2 = t2[1]
+
+	return math.sqrt( (x2 - x1)**2 + (y2 - y1)**2)
 
 #### Class ####
 
@@ -89,7 +98,7 @@ class player(object):
 		"""
 		point = addTuple(loc, self.location)
 		border = self.border
-		
+
 		if abs(point[0]) > border or abs(point[1]) > border:
 			self.OutOfBounds = True
 
@@ -153,19 +162,20 @@ class player(object):
 	
 class billy(player):
 
-	def __init__(self, border, babes=(0,0), weapon=False, probability=[1/3, 1/3, 1/3]):
+	def __init__(self, border, location=(0,0), weapon=False, probability=[1/3, 1/3, 1/3]):
 		"""
 		Billy Class
 
 		Implements random walk algorithms, smart Billy, and Line of Sight
+
 		"""
 
-		super().__init__(border, babes)
+		super().__init__(border, location)
 		self.weapon = weapon
 		self.probX = probability
 		self.probY = probability
 
-	def caughtCheck(CAUGHT, options):
+	def caughtCheck(CAUGHT, *options):
 		"""
 		Caught Check
 
@@ -177,7 +187,7 @@ class billy(player):
 			CAUGHT = True
 		else:
 			loc = rand.choice(options)
-			self.location(loc)# Used in Line of Sight
+			self.setLocation(loc)# Used in Line of Sight # Having an issue with this function
 
 	def randomMove(self, maxStep):
 		"""
@@ -187,9 +197,9 @@ class billy(player):
 			maxStep   int
 		Cannot move (0,0)
 		"""
-		x = rand.choice(-maxStep,0,maxStep)
+		x = rand.choice((-maxStep,0,maxStep))
 		if x == 0:
-			y = rand.choice(-maxStep,maxStep)
+			y = rand.choice((-maxStep,maxStep))
 		else:
 			y = rand.randint(-maxStep, maxStep)
 		self.move((x,y))
@@ -213,14 +223,39 @@ class billy(player):
 		self.randomStep()
 		self.randomStep()
 
-	def smartUpdate(self):
+	def smartUpdate(self, increment=0.1, subtract=0.05):
 		"""
 		Smart Update
 
 		Every step from the center he is 10% more likely to move towards the closest border
 		"""
+		x = self.locX()
+		y = self.locY()
 
-		return 1
+		if not((x,y) == (0,0)):
+			if not(x == 0):
+				xSign = int(x/abs(x))
+			else:
+				xSign = 0
+			if not(y==0):
+				ySign = int(y/abs(y))
+			else:
+				ySign = 0
+
+			self.probX[xSign] += abs(x)*(increment+subtract)
+			self.probY[ySign] += abs(y)*(increment+subtract)
+
+			self.probX = list(map(lambda x: x -subtract, self.probX))
+			self.probY = list(map(lambda x: x-subtract, self.probY))
+
+			x = int(numpy.random.choice(3, 1, self.probX)) -1
+			y = int(numpy.random.choice(3, 1, self.probY)) -1
+
+			self.move((x,y))
+		else:
+			self.randomStep()
+
+	# Need to check all code below this :)
 
 	def superBilly(self):
 		"""
@@ -306,7 +341,7 @@ class billy(player):
 
 class guard(player):
 
-	def __init__(self, border, location, center=(0,0)):
+	def __init__(self, border, location, center=(0,0), centerAlarm=False, LB_Alarm=False, RB_Alarm=False, TL_Alarm=False, TR_Alarm=False):
 		"""
 		Generic Guard Class
 
@@ -316,7 +351,11 @@ class guard(player):
 		"""
 		super().__init__(border, location)
 		self.center = center
-
+		self.centerAlarm= centerAlarm
+		self.LB_Alarm = LB_Alarm
+		self.RB_Alarm = RB_Alarm
+		self.TL_Alarm = TL_Alarm
+		self.TR_Alarm = TR_Alarm
 
 	def outsideBorder(self, points=None):
 		"""
@@ -356,6 +395,16 @@ class guard(player):
 		points = self.outsideBorder(checks) # produce a new list of locations that are not outside the border
 		self.setLocation(rand.choice(points)) # randomly set location of player to one of those locations
 
+	def alarmCheck(self):
+		"""
+		Alarm Check
+
+		I still need to figure out what exactly this does, and what to do with the quartile alarms. 
+
+		"""
+		if self.location == (0,0):
+			self.centerAlarm = True
+
 class squareGuard(guard):
 	"""
 	Square Guard
@@ -378,6 +427,71 @@ class squareGuard(guard):
 		self.perimeter = Sqborder
 		self.probability = [1/2, 1/2] # left or right
 
+	def squareGuard_Option_Calculator(self):
+		options = (-1,1)
+		ops = len(options) 
+		bDist = self.perimeter
+          
+        # Where corners should be
+		cornerX1 = bDist # right
+		cornerX2 = -bDist # left
+		cornerY1 = bDist # top
+		cornerY2 = -bDist # bottom
+        
+        # Check if it's in between the corners
+		x = rand.randrange(0,2)
+		if (self.location == (cornerX1, cornerY1)): # top right corner
+			movOps = ((-1,0), (0,-1))
+			return movOps
+		elif (self.location == (cornerX1, cornerY2)): # bottom right corner
+			movOps = ((-1, 0), (0,1))
+			return movOps
+		elif (self.location == (cornerX2, cornerY1)): # top left corner
+			movOps = ((1,0), (0,-1))
+			return movOps
+		elif (self.location == (cornerX2, cornerY2)): # bottom left corner
+			movOps = ((1,0),(0,1))
+			return movOps
+		elif self.locX() == cornerX1 or self.locX() == cornerX2: # If the location is on the far left or right
+			movOps = ((0,1),(0,-1))
+			return movOps
+		elif self.locY() == cornerY1 or self.locY() == cornerY2: # If the location is on the top or bottom
+			movOps = ((1,0),(-1,0))
+			return movOps
+		else:
+			raise Exception('ERROR: Guard Random Border Step') # This Needs some work
+
+	def randomStep(self):
+		"""
+		Random Step
+
+		calculates possible options for movements, chooses one randomly, then updates. 
+		"""
+		options = self.squareGuard_Option_Calculator()
+		move = rand.choice(options)
+		self.move(move)
+
+	def lineOfSight(self, billy):
+		"""
+		Line of Sight
+
+		Moves Square guard along path but if billy is nearby, it tends the guard toward Billy
+		"""
+		perimeter = self.generatePerimeter()
+		billLoc = billy.location
+		
+		if billLoc in perimeter:
+			closest = float("inf")
+			for movement in self.squareGuard_Option_Calculator():
+				dist = distance(movement, billLoc)
+				if dist < closest:
+					smallest = dist
+			self.move(closest)
+		else:
+			self.randomStep()
+
+	"""
+	Old Random Step
 	def randomStep(self): # This is more complicated than I want it to be
 		options = (-1,1)
 		ops = len(options) 
@@ -405,10 +519,11 @@ class squareGuard(guard):
 			self.move(movOps[x])
 		elif self.locX() == cornerX1 or self.locX() == cornerX2: # If the location is on the far left or right
 			self.moveY(options[rand.randrange(0,ops)])
-		elif self.locY() == cornerY1 or self.locY() == cornerY2: # If the location is not on the top or bottom
+		elif self.locY() == cornerY1 or self.locY() == cornerY2: # If the location is on the top or bottom
 			self.moveX(options[rand.randrange(0, ops)])
 		else:
 			raise Exception('ERROR: Guard Random Border Step') # This Needs some work
+	"""
 
 class pathGuard(guard):
 	"""
@@ -476,9 +591,28 @@ class pathGuard(guard):
 			raise e2
 			return False # If so, raises exceptions and returns False
 
-	def lineOfSight(self):
-		# WRITE HERE
-		return 1
+	def lineOfSight(self, billy):
+		"""
+		Line of Sight
+
+		If billy is nearby the guard will tend toward Billy
+		"""
+		perimeter = self.generatePerimeter()
+		target = billy.location
+
+		if target in perimeter:
+			loc1 = self.path[self.index+1]
+			loc2 = self.path[self.index -1]
+
+			dist1 = distance(loc1, target)
+			dist2 = distance(loc2, target)
+
+			if dist1 > dist2:
+				self.setLocation(self.path[self.index -1])
+			else:
+				self.setLocation(self.path[self.index + 1])
+		else:
+			self.randomStep()
 
 class bishop(guard):
 	"""
@@ -579,9 +713,25 @@ class rook(guard):
 		points = [(stepSize,0), (0,stepSize), (-stepSize,0), (0,-stepSize)] # all possible paths
 		self.randomMove_from_movements(points)
 
-	def lineOfSight(self):
-		# Write here
-		return 1
+	def lineOfSight(self, billy):
+		"""
+		Line of Sight
+
+		Yeah...it's the same as the other line of sight functions.  I probably could have made an abstraction for this....
+		"""
+		perimeter = self.generatePerimeter()
+		target = billy.location
+		movements = [(stepSize,0), (0,stepSize), (-stepSize,0), (0,-stepSize)]
+
+		if target in perimeter:
+			shortest = float("inf")
+			for move in movements:
+				dist = distance(target, move)
+				if dist < shortest:
+					shortest = dist
+			self.move(shortest)
+		else:
+			self.randomStep()
 
 class knight(guard):
 	"""
