@@ -131,38 +131,23 @@ class player(object):
 
 	def generatePerimeter(self, perim=1):
 		"""
-		Perimeter
+		Generate Perimeter
 
-		Generates all points around a player within a certain perimeter (perim)
-		Default perim is 1
+		Generate a list of points that is around the location of one of our players
 		"""
-		points = []
-		adders = []
-		loc = self.location
+		location = self.location
+		x = location[0]
+		y = location[1]
+		Xlist = [x+perim, x, x-perim]
+		Ylist = [y+perim, y, y-perim]
 
-		# Generate adders
-		for i in range(perim):
-			adders.append(i + 1)
-		for adder in adders:
-			adders.append(-adder) # Include negative numbers
-
-		# Generate Points
-		for adder in adders:
-			x = loc[0] + adder
-			new = (x, loc[1])
-			points.append(new) # Append (newX, original Y)
-
-			y = loc[1] + adder
-			new = (loc[0], y)
-			points.append(new) # Append (original X , newY)
-
-			points.append((x,y)) # Append (newX, newY)
-
-		return points  # Have Not tested this!!!
+		perimeter = [(a,b) for a in Xlist for b in Ylist]
+		perimeter.remove(location)
+		return perimeter
 	
 class billy(player):
 
-	def __init__(self, border, location=(0,0), weapon=False, probability=[1/3, 1/3, 1/3]):
+	def __init__(self, border, location=(0,0), weapon=False, probability=[1/3, 1/3, 1/3], caught=False):
 		"""
 		Billy Class
 
@@ -171,11 +156,12 @@ class billy(player):
 		"""
 
 		super().__init__(border, location)
+		self.CAUGHT = caught
 		self.weapon = weapon
 		self.probX = probability
 		self.probY = probability
 
-	def caughtCheck(CAUGHT, *options):
+	def caughtCheck(self, options):
 		"""
 		Caught Check
 
@@ -184,10 +170,12 @@ class billy(player):
 		If not Caught, location is updated randomly.  If Caught, CAUGHT boolean is updated to True
 		"""
 		if not options:
-			CAUGHT = True
+			self.CAUGHT = True
+			return self.CAUGHT
 		else:
 			loc = rand.choice(options)
 			self.setLocation(loc)# Used in Line of Sight # Having an issue with this function
+			return self.CAUGHT
 
 	def randomMove(self, maxStep):
 		"""
@@ -257,6 +245,7 @@ class billy(player):
 
 	# Need to check all code below this :)
 
+	# Need to write this
 	def superBilly(self):
 		"""
 		Super Billy
@@ -264,7 +253,7 @@ class billy(player):
 		Combines all of Billy's abilities to update his position
 		"""
 
-		return 1
+		return 1 
 
 	def abstractLineOfSight(self, walk, guard, rook, bishop, knight, teleporter): # This is more complicated than I want it to be.  Maybe use the new Generate Perimeter Function.
 		"""
@@ -302,7 +291,7 @@ class billy(player):
 			if fail in checks:
 				checks.remove(fail)
 
-	def lineOfSight(self, CAUGHT, guard, rook, bishop, knight, teleporter):
+	def lineOfSight(self, guard, rook, bishop, knight, teleporter):
 		"""
     	Line of Sight
 
@@ -310,7 +299,7 @@ class billy(player):
     	If unable to move Billy the CAUGHT parameter is changed to True
 		"""
 		options = self.abstractLineOfSight(1, guard, rook, bishop, knight, teleporter)
-		caughtCheck(CAUGHT, options)
+		self.caughtCheck(options)
 
 	def lineOfSight_Sprint(self, CAUGHT, guard, rook, bishop, knight, teleporter):
 		"""
@@ -320,9 +309,9 @@ class billy(player):
 		Again, if unable to move Billy the CAUGHT parameter is changed to True
 		"""
 		options = self.abstractLineOfSight(2, guard, rook, bishop, knight, teleporter)
-		caughtCheck(CAUGHT, options)# May need to fix this.  Sprint is two movements, not jumping two squares. 
+		self.caughtCheck(CAUGHT, options)# May need to fix this.  Sprint is two movements, not jumping two squares. 
 
-	def survived(self, probability):
+	def caughtCheck(self, probability=0.1):
 		"""
 		Survival Calculator (weapon)
 
@@ -335,9 +324,11 @@ class billy(player):
 
 		This is to be used with Billy's Weapon implementation
 		"""
-		options = [True, False]
+		options = [False, True]
 		x = numpy.random.choice(2, 1, [probability, 1-probability]) # 2 is length of Options, and 1 is the number of outputs we want.  
-		return options[x] # We use the output of our random function as an index for choosing True or False
+		result = options[x] # We use the output of our random function as an index for choosing True or False
+		self.CAUGHT = result
+		return result
 
 class guard(player):
 
