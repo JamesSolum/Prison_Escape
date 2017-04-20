@@ -491,7 +491,7 @@ class pathGuard(guard):
 
 		Randomly traverse trail List one step at a time
 		"""
-		self.index = (self.index + rand.choice(-1,1)) % len(self.trail) # Update trail index to point to next or previous location point
+		self.index = (self.index + rand.choice((-1,1))) % len(self.trail) # Update trail index to point to next or previous location point
 		self.setLocation(self.trail[self.index]) # Update location to new list location
 
 	def pathCheck(self):
@@ -537,16 +537,16 @@ class pathGuard(guard):
 		target = billy.location
 
 		if target in perimeter:
-			loc1 = self.path[self.index+1]
-			loc2 = self.path[self.index -1]
+			loc1 = self.trail[self.index+1]
+			loc2 = self.trail[self.index -1]
 
 			dist1 = distance(loc1, target)
 			dist2 = distance(loc2, target)
 
 			if dist1 > dist2:
-				self.setLocation(self.path[self.index -1])
+				self.setLocation(self.trail[self.index -1])
 			else:
-				self.setLocation(self.path[self.index + 1])
+				self.setLocation(self.trail[self.index + 1])
 		else:
 			self.randomStep()
 
