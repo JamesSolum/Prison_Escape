@@ -243,8 +243,6 @@ class billy(player):
 		else:
 			self.randomStep()
 
-	# Need to check all code below this :)
-
 	# Need to write this
 	def superBilly(self):
 		"""
@@ -332,7 +330,7 @@ class billy(player):
 
 class guard(player):
 
-	def __init__(self, border, location, center=(0,0), centerAlarm=False, LB_Alarm=False, RB_Alarm=False, TL_Alarm=False, TR_Alarm=False):
+	def __init__(self, border, location, center=(0,0)):
 		"""
 		Generic Guard Class
 
@@ -342,11 +340,6 @@ class guard(player):
 		"""
 		super().__init__(border, location)
 		self.center = center
-		self.centerAlarm= centerAlarm
-		self.LB_Alarm = LB_Alarm
-		self.RB_Alarm = RB_Alarm
-		self.TL_Alarm = TL_Alarm
-		self.TR_Alarm = TR_Alarm
 
 	def outsideBorder(self, points=None):
 		"""
@@ -385,16 +378,6 @@ class guard(player):
 		checks = list(map(lambda x: addTuple(x, self.location), points)) # convert those movements into locations
 		points = self.outsideBorder(checks) # produce a new list of locations that are not outside the border
 		self.setLocation(rand.choice(points)) # randomly set location of player to one of those locations
-
-	def alarmCheck(self):
-		"""
-		Alarm Check
-
-		I still need to figure out what exactly this does, and what to do with the quartile alarms. 
-
-		"""
-		if self.location == (0,0):
-			self.centerAlarm = True
 
 class squareGuard(guard):
 	"""
@@ -472,49 +455,15 @@ class squareGuard(guard):
 		billLoc = billy.location
 		
 		if billLoc in perimeter:
-			closest = float("inf")
+			closeDist = float("inf")
 			for movement in self.squareGuard_Option_Calculator():
 				dist = distance(movement, billLoc)
-				if dist < closest:
-					smallest = dist
+				if dist < closeDist:
+					closest = movement
+					closeDist = distance(closest, billLoc)
 			self.move(closest)
 		else:
 			self.randomStep()
-
-	"""
-	Old Random Step
-	def randomStep(self): # This is more complicated than I want it to be
-		options = (-1,1)
-		ops = len(options) 
-		bDist = self.perimeter
-          
-        # Where corners should be
-		cornerX1 = bDist # right
-		cornerX2 = bDist # left
-		cornerY1 = bDist # top
-		cornerY2 = bDist # bottom
-        
-        # Check if it's in between the corners
-		x = rand.randrange(0,2)
-		if (self.location == (cornerX1, cornerY1)): # top right corner
-			movOps = ((-1,0), (0,-1))
-			self.move(movOps[x])
-		elif (self.location == (cornerX1, cornerY2)): # bottom right corner
-			movOps = ((-1, 0), (0,1))
-			self.move(movOps[x])
-		elif (self.location == (cornerX2, cornerY1)): # top left corner
-			movOps = ((1,0), (0,-1))
-			self.move(movOps[x])
-		elif (self.location == (cornerX2, cornerY2)): # bottom left corner
-			movOps = ((1,0),(0,1))
-			self.move(movOps[x])
-		elif self.locX() == cornerX1 or self.locX() == cornerX2: # If the location is on the far left or right
-			self.moveY(options[rand.randrange(0,ops)])
-		elif self.locY() == cornerY1 or self.locY() == cornerY2: # If the location is on the top or bottom
-			self.moveX(options[rand.randrange(0, ops)])
-		else:
-			raise Exception('ERROR: Guard Random Border Step') # This Needs some work
-	"""
 
 class pathGuard(guard):
 	"""
@@ -557,6 +506,7 @@ class pathGuard(guard):
 		"""
 		borderPoints = []
 		badPoints = []
+		trail = self.trail
 		e1 = None # Exception 1
 		e2 = None # Exception 2
 
@@ -566,21 +516,16 @@ class pathGuard(guard):
 				if abs(point[0]) > self.border or abs(point[1]) > self.border:
 					borderPoints.append(point)
 				if not not borderPoints: # Returns True if there is something in the list
-					e1 = Exception("Points:", borderPoints, "are not within defined border!") # Prints all the problem points
+					Exception("Points:", borderPoints, "are not within defined border!") # Prints all the problem points
 
 		# Unit Check
-		for index in len(trail) -1 :
-			if abs(trail[index][0] - trail[index + 1][0]) > 1 or abs(trail[index][1] - trail[index][1]) > 1:
-				badPoints.append([trail(index), trail[index +1]])
+		for index in range(0,len(trail) -1):
+			if abs(trail[index][0] - trail[index + 1][0]) > 1 or abs(trail[index][1] - trail[index+1][1]) > 1:
+				badPoints.append([trail[index], trail[index +1]])
 			if not not badPoints: # Returns True if there is something in the list
-				e2 = Exception("Points", badPoints, "are not one unit away from each other!") # Prints all the problem points
+				raise Exception("Points", badPoints, "are not one unit away from each other!") # Prints all the problem points
 		
-		if not e1 and not e2: # Checks if there were exceptions
-			return True # If not function returns True
-		else: 
-			raise e1 
-			raise e2
-			return False # If so, raises exceptions and returns False
+		return True # If everything is good return True
 
 	def lineOfSight(self, billy):
 		"""
