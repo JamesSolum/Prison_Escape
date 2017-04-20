@@ -7,7 +7,7 @@ Player Class
 
 Author: James Solum
 
-This class will be the basis for basic methods for creating
+This class will be the foundation for creating
 our different players in the Prison Escape Simulation.
 
 The player class will be the blueprints for:
@@ -789,5 +789,3 @@ class teleporter(guard):
 		x = rand.randrange(-border, border+1)
 		y = rand.randrange(-border, border+1)
 		self.setLocation((x,y))
-
-
