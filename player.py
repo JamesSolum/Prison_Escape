@@ -31,7 +31,6 @@ The player class will be the blueprints for:
 
 			Abilities
 			* Alarm, at (0,0)
-			* Weapon
 			* Line of Sight
 			* Quartile Alarm
 """
@@ -147,7 +146,7 @@ class player(object):
 	
 class billy(player):
 
-	def __init__(self, border, location=(0,0), weapon=False, probability=[1/3, 1/3, 1/3], caught=False):
+	def __init__(self, border, location=(0,0), weapon=False, probability=[1/4, 3/8, 3/8], caught=False):
 		"""
 		Billy Class
 
@@ -230,14 +229,14 @@ class billy(player):
 			else:
 				ySign = 0
 
-			self.probX[xSign] += abs(x)*(increment+subtract)
-			self.probY[ySign] += abs(y)*(increment+subtract)
+			self.probX[xSign] += abs(x)*(increment+subtract) # here is an issue
+			self.probY[ySign] += abs(y)*(increment+subtract) # here is another issue
 
-			self.probX = list(map(lambda x: x -subtract, self.probX))
+			self.probX = list(map(lambda x: x-subtract, self.probX))
 			self.probY = list(map(lambda x: x-subtract, self.probY))
 
-			x = int(numpy.random.choice(3, 1, self.probX)) -1
-			y = int(numpy.random.choice(3, 1, self.probY)) -1
+			x = int(numpy.random.choice(3, 1, p=self.probX)) -1
+			y = int(numpy.random.choice(3, 1, p=self.probY)) -1
 
 			self.move((x,y))
 		else:
@@ -323,10 +322,23 @@ class billy(player):
 		This is to be used with Billy's Weapon implementation
 		"""
 		options = [False, True]
-		x = numpy.random.choice(2, 1, [probability, 1-probability]) # 2 is length of Options, and 1 is the number of outputs we want.  
+		x = numpy.random.choice(2, 1, p=[probability, 1-probability]) # 2 is length of Options, and 1 is the number of outputs we want.  
 		result = options[x] # We use the output of our random function as an index for choosing True or False
 		self.CAUGHT = result
+		if not(result):
+			self.Weapon=False
 		return result
+
+	def weapon(self, *guard):
+		options = [True, False]
+		for g in guard:
+			if self.location == g.location:
+				x = numpy.random.choice([0,1], 1, p=[0.1, 0.9]) # 10% chance he is caught
+
+		if options[x]:
+			self.location = (0,0) # Reset location
+		else:
+			self.Caught=True
 
 class guard(player):
 
@@ -599,8 +611,8 @@ class bishop(guard):
 
 			# Calculate new random location with new probabilties
 			options = [-1,1]
-			x = int(numpy.random.choice(options, 1, self.probX))
-			y = int(numpy.random.choice(options, 1, self.probY))
+			x = int(numpy.random.choice(options, 1, p=self.probX))
+			y = int(numpy.random.choice(options, 1, p=self.probY))
 
 			self.setLocation((x,y)) # update locations
 
@@ -630,14 +642,14 @@ class rook(guard):
 
 	Guard that moves up, down, left, or right
 	"""
-	def __init__(self, border, location=float("inf")):
+	def __init__(self, border, probability=[1/4,1/4,1/4,1/4], location=float("inf")):
 		"""
 		Initializes Rook
 
 		Just uses general guard class.  
 		"""
 		super().__init__(border, location)
-		self.probability = [1/4, 1/4, 1/4, 1/4] #up, down, left, right
+		self.probability = probability #up, down, left, right
 
 	def randomStep(self, stepSize=1):
 		"""
@@ -686,8 +698,8 @@ class knight(guard):
 
 	def randomStep(self):
 		vertOrHoriz = rand.choice((1,0)) # Up/down or left/right
-		longL = rand.choice(1,-1) # positive or negative for long part of "L"
-		shortL = rand.choice(1,-1) # postive or negative for short part of the "L"
+		longL = rand.choice((1,-1)) # positive or negative for long part of "L"
+		shortL = rand.choice((1,-1)) # postive or negative for short part of the "L"
 
 		if vertOrHoriz == 0:
 			self.moveX(longL)
@@ -706,13 +718,14 @@ class teleporter(guard):
 
 	Guard that randomly jumps within the board
 	"""
-	def __init__(self, border, location=float("inf")):
+	def __init__(self, border, center=(0,0), location=float("inf")):
 		"""
 		Initialize Teleporter
 
 		General guard class
 		"""
 		super().__init__(border, location)
+		self.center = center
 
 	def randomStep(self):
 		"""
@@ -722,6 +735,53 @@ class teleporter(guard):
 		location of the guard to that point
 		"""
 		border = self.border
-		x = rand.randrange(-border, border+1)
-		y = rand.randrange(-border, border+1)
+		centerX = self.center[0]
+		centerY = self.center[1]
+		x = rand.randrange(centerX - border, centerX + border+1)
+		y = rand.randrange(centerY-border, centerY + border+1)
 		self.setLocation((x,y))
+
+	def alarmCheck(self, alarm):
+		if alarm.triggered:
+			self.border = alarm.border
+			self.center = alarm.location
+
+	def quartileAlarmMove(self, alarm1, alarm2, alarm3, alarm4):
+		self.alarmCheck(alarm1)
+		self.alarmCheck(alarm2)
+		self.alarmCheck(alarm3)
+		self.alarmCheck(alarm4)
+
+		self.randomStep()
+
+class alarm(player):
+	def __init__(self,border, location, triggered=False):
+		super().__init__(border,location)
+		self.triggered = triggered
+
+	def trigger():
+		self.triggered = True
+		return self.triggered
+
+	def reset():
+		self.triggered = False
+
+class centerAlarm(alarm):
+	def __init__(self, border, location=(0,0), triggered=False):
+		super().__init__(border, location, triggered)
+
+	def guardCheck(self, guard): # list of guards
+		for g in guard:
+			if abs(g.location[0]) <= self.border and abs(g.location[1]) <= self.border:
+				self.triggered = True
+				return self.triggered
+
+class quartileAlarm(alarm):
+	def __init__(self, location, border=0, triggered=False):
+		super().__init__(border, location, triggered)
+
+	def billyCheck(self, billy):
+		if billy.location == self.location:
+			self.triggered = True
+			return self.triggered
+
