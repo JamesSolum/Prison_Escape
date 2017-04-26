@@ -18,45 +18,46 @@ def runSimulation():
     ###############################################
 
     ## Players ##
-    BILLY = True # Lol don't change this one
-    PERIMGUARD= True
-    PATHGUARD = False
-    BISHOP = True
-    ROOK = True
-    KNIGHT = True # Should this have a line of sight?
+    BILLY      = True # Lol don't change this one
+    PERIMGUARD = True
+    PATHGUARD  = False
+    BISHOP     = True
+    ROOK       = True
+    KNIGHT     = True # Should this have a line of sight?
     TELEPORTER = True # no line of sight
 
     ## Powers ##
-    BILLY_SPRINT = False
-    SMART_BILLY = False
-    BILLY_LOS = False # If True, Set PathGuard to False and all other players to True
+    BILLY_SPRINT = True
+    SMART_BILLY  = False # Fix probabilities
+    #Fix LOS
+    BILLY_LOS   = False # If True, Set PathGuard to False and all other players to True
     BILLY_SUPER = False # not implemented yet, both Smart and LOS
-    WEAPON = False 
+    WEAPON      = False 
 
-    GUARD_LOS = False
-    CENTER_ALARM = False
+    GUARD_LOS       = True
+    CENTER_ALARM    = False
     QUARTILE_ALARMS = False
-    GUARD_SPRINT = False
+    GUARD_SPRINT    = False
 
     ### More Constants ###
     BORDER = 4
 
     ### Alarm Params ###
     CENTER_ALARM_TRIGGERED = False   
-    ALARM_BORDER = 2
-    ALARM_CENTER_LOCATION = (0,0)
+    ALARM_BORDER           = 2
+    ALARM_CENTER_LOCATION  = (0,0)
 
-    QUARTILE_1_TRIGGER = False
-    QUARTILE_1_LOCATION = (-2, -2)
+    QUARTILE_1_TRIGGER     = False
+    QUARTILE_1_LOCATION    = (-2, -2)
 
-    QUARTILE_2_TRIGGER = False
-    QUARTILE_2_LOCATION = (-2, 2)
+    QUARTILE_2_TRIGGER     = False
+    QUARTILE_2_LOCATION    = (-2, 2)
 
-    QUARTILE_3_TRIGGER = False
-    QUARTILE_3_LOCATION = (2, 2)
+    QUARTILE_3_TRIGGER     = False
+    QUARTILE_3_LOCATION    = (2, 2)
 
-    QUARTILE_4_TRIGGER = False
-    QUARTILE_4_LOCATION = (2, -2)
+    QUARTILE_4_TRIGGER     = False
+    QUARTILE_4_LOCATION    = (2, -2)
 
     ## Player Specific Constants ##
     SQUARE_GUARD_PATROL_BORDER = 5
@@ -128,7 +129,7 @@ def runSimulation():
         LineOSGuards.append(perimGuard)
     if PATHGUARD:
         pathGuard = p.pathGuard(GUARD_PATH, BORDER) 
-        Guard.append(pathGuard)
+        Guards.append(pathGuard)
         LineOSGuards.append(pathGuard)
     if BISHOP:
         bishop = p.bishop(BORDER)

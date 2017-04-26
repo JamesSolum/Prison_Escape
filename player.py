@@ -589,7 +589,7 @@ class bishop(guard):
 		points = list(itertools.product((stepSize, -stepSize), (stepSize, -stepSize))) # Produces a list of all possible movements
 		self.randomMove_from_movements(points)
 
-	def lineOfSight(self, Billy, amount=0.1):
+	def lineOfSight(self, billy, amount=0.1):
 		"""
 		Line of Sight 
 
@@ -597,7 +597,7 @@ class bishop(guard):
 
 		Checks if Billy is close by.  If so increases the probability by %10 to go towards billy.
 		"""
-		target = billy.location()
+		target = billy.location
 		perimeter = self.generatePerimeter()
 
 		# check if target is in perimeter
@@ -661,7 +661,7 @@ class rook(guard):
 		points = [(stepSize,0), (0,stepSize), (-stepSize,0), (0,-stepSize)] # all possible paths
 		self.randomMove_from_movements(points)
 
-	def lineOfSight(self, billy):
+	def lineOfSight(self, billy, stepSize=1):
 		"""
 		Line of Sight
 
