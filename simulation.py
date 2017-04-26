@@ -11,8 +11,7 @@ This will be the main file that will build and run our simulation
 """
 #from player import *
 import player as p
-
-SIMULATION_ITERATIONS = 100000
+from sys import argv
 
 def runSimulation():
     # CONSTANTS
@@ -189,6 +188,15 @@ def runSimulation():
         return 1
 
 def main():
+
+    Sims = 10
+
+    if len(argv) > 1:
+        SIMULATION_ITERATIONS = int(argv[1])
+    else:
+        SIMULATION_ITERATIONS = Sims
+
+
     escaped = 0
     caught = 0
     for i in range(0, SIMULATION_ITERATIONS):
@@ -198,6 +206,7 @@ def main():
         elif x == 1:
             escaped += 1
     print("Caught:", caught, "\nEscaped:", escaped)
+    print("\nNumber of Simulations:", SIMULATION_ITERATIONS)
 
 if __name__ == "__main__":
     main()
