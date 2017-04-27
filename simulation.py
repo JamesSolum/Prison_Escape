@@ -20,31 +20,30 @@ def runSimulation():
     ## Players ##
     BILLY      = True # Lol don't change this one
     PERIMGUARD = True
-    PATHGUARD  = False
+    PATHGUARD  = True
     BISHOP     = True
     ROOK       = True
     KNIGHT     = True # Should this have a line of sight?
     TELEPORTER = True # no line of sight
 
     ## Powers ##
-    BILLY_SPRINT = True
-    SMART_BILLY  = False # Fix probabilities
-    #Fix LOS
-    BILLY_LOS   = False # If True, Set PathGuard to False and all other players to True
-    BILLY_SUPER = False # not implemented yet, both Smart and LOS
-    WEAPON      = False 
+    BILLY_SPRINT = False
+    SMART_BILLY  = False# Fix probabilities
+    BILLY_LOS    = False 
+    BILLY_SUPER  = False # not implemented yet, both Smart and LOS
+    WEAPON       = False 
 
-    GUARD_LOS       = True
-    CENTER_ALARM    = False
-    QUARTILE_ALARMS = False
+    GUARD_LOS       = False 
+    CENTER_ALARM    = False 
+    QUARTILE_ALARMS = False 
     GUARD_SPRINT    = False
 
     ### More Constants ###
-    BORDER = 4
+    BORDER = 4 # Distance from center
 
     ### Alarm Params ###
     CENTER_ALARM_TRIGGERED = False   
-    ALARM_BORDER           = 2
+    ALARM_BORDER           = 1
     ALARM_CENTER_LOCATION  = (0,0)
 
     QUARTILE_1_TRIGGER     = False
@@ -63,6 +62,7 @@ def runSimulation():
     SQUARE_GUARD_PATROL_BORDER = 5
     GUARD_PATH = [(1,1),(2,1),(1,2),(2,2),(1,3),(0,4),(0,3),(-1,2),(-1,1),(-1,0),(-1,-1),(0,-1)]
     CHANGE_IN_PROB = 0.1
+    WEAPON_PROB = 0.1
     ######################################################
 
     Guards = []
@@ -73,31 +73,22 @@ def runSimulation():
     def guardLosUpdate(*guard):
         for g in guard:
             g.lineOfSight()
-    def caughtHuh(billy, guards):
-        for g in guards:
-            if g.location == billy.location:
-                if billy.weapon:
-                    billy.caughtCheck(WEAPON_PROB)
-                else:
-                    billy.CAUGHT = True
         
     def billyUpdate(billy, guards):
         if SMART_BILLY:
                 billy.smartUpdate()
-                caughtHuh(billy, guards)
+                billy.weaponCheck(guards, p=WEAPON_PROB)
+                #caughtHuh(billy, guards)
         if BILLY_LOS:
-            if PATHGUARD:
-                raise ERROR("Set PATHGUARD to False") # B/c of bad implementation of LOS
-            if not(PERIMGUARD and BISHOP and ROOK and KNIGHT and TELEPORTER):
-                raise ERROR("Need all players for Billy LOS except PathGuard to be True")
-            billy.lineOfSight(perimGuard, rook, bishop, knight, teleporter)
+            billy.lineOfSight(guards)
+            billy.weaponCheck(guards, p=WEAPON_PROB)
         if BILLY_SUPER:
-            raise ERROR("Billy Super is not implemented yet")
+            raise Exception("Super Billy is not implemented yet")
             billy.super() # Not implemented
+            billy.weaponCheck(guards, p=WEAPON_PROB)
         else:
             billy.randomStep()
-            caughtHuh(billy, Guards)
-            #print("Billy:", billy.location)
+            billy.weaponCheck(guards, p=WEAPON_PROB)
 
     def guardUpdate(billy, guards):
         if GUARD_LOS:
@@ -115,7 +106,13 @@ def runSimulation():
         else:
             for guard in Guards:
                 guard.randomStep()
-                #print("     Guard:", guard.location)
+
+    def checkCaught(billy, guards):
+        billLoc = billy.location
+
+        for guard in guards:
+            if guard.location == billLoc:
+                billy.CAUGHT = True
 
     # Simulation
     #Instantiate Players
@@ -169,6 +166,7 @@ def runSimulation():
         
         if GUARD_SPRINT:
             guardUpdate(billy, Guards)
+            checkCaught(billy, Guards)
             guardUpdate(billy, Guards)
         else:
             guardUpdate(billy, Guards)
@@ -176,9 +174,13 @@ def runSimulation():
         # Billy Update
         if BILLY_SPRINT:
             billyUpdate(billy, Guards)
+            checkCaught(billy, Guards)
             billyUpdate(billy, Guards)
         else:
             billyUpdate(billy, Guards)
+
+        checkCaught(billy, Guards)
+
     
     #print("Escaped:", billy.OutOfBounds)
    # print("Caught:", billy.CAUGHT)

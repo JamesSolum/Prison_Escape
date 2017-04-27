@@ -252,15 +252,31 @@ class billy(player):
 
 		return 1 
 
-	def abstractLineOfSight(self, walk, guard, rook, bishop, knight, teleporter): # This is more complicated than I want it to be.  Maybe use the new Generate Perimeter Function.
+	def abstractLineOfSight(self, guards):
 		"""
 		Abstract Line of Sight
+		takes a list of guards
 
 		Abstraction for line of Sight
 			paramters: all players
 			returns: list of possible movements
 
 		"""
+
+		perim = self.generatePerimeter()
+
+		for g in guards:
+			spots = g.generatePerimeter()
+			for spot in spots:
+				if spot in perim:
+					perim.remove(spot)
+
+		return perim
+
+	"""
+	def abstractLineOfSightOLD(self, walk, guard, rook, bishop, knight, teleporter): # This is more complicated than I want it to be.  Maybe use the new Generate Perimeter Function.
+		
+
 		loc = self.location
 		x = loc[0]
 		y = loc[1]
@@ -287,58 +303,57 @@ class billy(player):
 		for fail in noGo:
 			if fail in checks:
 				checks.remove(fail)
+	"""
 
-	def lineOfSight(self, guard, rook, bishop, knight, teleporter):
+	def lineOfSight(self, guards):
 		"""
     	Line of Sight
+    	takes a list of guards
 
     	Moves Billy by a factor of 1 according to Line of Sight Algorithm.
     	If unable to move Billy the CAUGHT parameter is changed to True
 		"""
-		options = self.abstractLineOfSight(1, guard, rook, bishop, knight, teleporter)
+		options = self.abstractLineOfSight(guards)
 		self.caughtCheck(options)
-
+		"""
 	def lineOfSight_Sprint(self, CAUGHT, guard, rook, bishop, knight, teleporter):
+		"""
 		"""
 		Line of Sight Sprint
 
 		Moves Billy by a factor of 2 according to Line of Sight Algorithm.
 		Again, if unable to move Billy the CAUGHT parameter is changed to True
 		"""
+		"""
 		options = self.abstractLineOfSight(2, guard, rook, bishop, knight, teleporter)
 		self.caughtCheck(CAUGHT, options)# May need to fix this.  Sprint is two movements, not jumping two squares. 
-
-	def caughtCheck(self, probability=0.1):
 		"""
-		Survival Calculator (weapon)
 
-		Calculates whether Billy survives given 
-		a certain probability of survival
-			True     survived
-			False    caught
-
-		probability parameter must be less than or equal to 1
-
-		This is to be used with Billy's Weapon implementation
-		"""
-		options = [False, True]
-		x = numpy.random.choice(2, 1, p=[probability, 1-probability]) # 2 is length of Options, and 1 is the number of outputs we want.  
-		result = options[x] # We use the output of our random function as an index for choosing True or False
-		self.CAUGHT = result
-		if not(result):
-			self.Weapon=False
-		return result
-
-	def weapon(self, *guard):
-		options = [True, False]
-		for g in guard:
-			if self.location == g.location:
-				x = numpy.random.choice([0,1], 1, p=[0.1, 0.9]) # 10% chance he is caught
-
-		if options[x]:
-			self.location = (0,0) # Reset location
+	def caughtCheck(self, options):
+		if not options:
+			self.CAUGHT = True
 		else:
-			self.Caught=True
+			move = rand.choice(options)
+			self.setLocation(move)
+
+	def weaponCheck(self, guard, p=0.1):
+		"""
+		Weapon
+
+		Calculates whether Billy survives given a certain
+		probability of survival
+		"""
+		if self.weapon:
+			options = [True, False]
+			for g in guard:
+				if self.location == g.location:
+					x = numpy.random.choice([0,1], 1, p=[p, 1-p]) # 10% chance he is caught
+					if options[int(x)]:
+						self.location = (0,0) # Reset location
+						self.weapon = False
+						self.Caught = False
+					else:
+						self.Caught=True
 
 class guard(player):
 
@@ -367,7 +382,7 @@ class guard(player):
 		"""
 		border = self.border
 		if not points:
-			if abs(self.locX) > border or abs(self.locY) > border:
+			if abs(self.locX()) > border or abs(self.locY()) > border:
 				return True # If outside of Border
 			else:
 				return False # If inside of border
@@ -390,6 +405,22 @@ class guard(player):
 		checks = list(map(lambda x: addTuple(x, self.location), points)) # convert those movements into locations
 		points = self.outsideBorder(checks) # produce a new list of locations that are not outside the border
 		self.setLocation(rand.choice(points)) # randomly set location of player to one of those locations
+
+	def lineOfSightAbstract(self, billy, perim):
+		options = []
+
+		loc = self.location
+		
+		billyList = billy.generatePerimeter()
+
+		for target in billyList:
+			if target in perim:
+				options.append(target)
+
+		if target in perim:
+			self.setLocation(rand.choice(options))  
+		else:
+			self.randomStep()
 
 class squareGuard(guard):
 	"""
@@ -547,18 +578,19 @@ class pathGuard(guard):
 		"""
 		perimeter = self.generatePerimeter()
 		target = billy.location
+		trailLength = len(self.trail)
 
 		if target in perimeter:
-			loc1 = self.trail[self.index+1]
-			loc2 = self.trail[self.index -1]
+			loc1 = self.trail[(self.index+1)%trailLength]
+			loc2 = self.trail[(self.index -1)%trailLength]
 
 			dist1 = distance(loc1, target)
 			dist2 = distance(loc2, target)
 
 			if dist1 > dist2:
-				self.setLocation(self.trail[self.index -1])
+				self.setLocation(self.trail[(self.index -1)%trailLength])
 			else:
-				self.setLocation(self.trail[self.index + 1])
+				self.setLocation(self.trail[(self.index + 1)%trailLength])
 		else:
 			self.randomStep()
 
@@ -589,7 +621,7 @@ class bishop(guard):
 		points = list(itertools.product((stepSize, -stepSize), (stepSize, -stepSize))) # Produces a list of all possible movements
 		self.randomMove_from_movements(points)
 
-	def lineOfSight(self, billy, amount=0.1):
+	def lineOfSightOld(self, billy, amount=0.1):
 		"""
 		Line of Sight 
 
@@ -636,6 +668,17 @@ class bishop(guard):
 				probability[1] -= amount
 				probability[0] += amount
 
+	def lineOfSight(self, billy):
+		"""
+		Line of Sight
+
+
+		If Billy is nearby then randomly choose location near or on Billy
+		"""
+		loc = self.location
+		perim = [(loc[0]+1,loc[1]+1),(loc[0]+1,loc[1]-1),(loc[0]-1,loc[1]+1),(loc[0]+1,loc[1]+1)]
+		self.lineOfSightAbstract(billy, perim)
+
 class rook(guard):
 	"""
 	Rook
@@ -661,25 +704,15 @@ class rook(guard):
 		points = [(stepSize,0), (0,stepSize), (-stepSize,0), (0,-stepSize)] # all possible paths
 		self.randomMove_from_movements(points)
 
-	def lineOfSight(self, billy, stepSize=1):
+	def lineOfSight(self, billy):
 		"""
 		Line of Sight
 
 		Yeah...it's the same as the other line of sight functions.  I probably could have made an abstraction for this....
 		"""
-		perimeter = self.generatePerimeter()
-		target = billy.location
-		movements = [(stepSize,0), (0,stepSize), (-stepSize,0), (0,-stepSize)]
-
-		if target in perimeter:
-			shortest = float("inf")
-			for move in movements:
-				dist = distance(target, move)
-				if dist < shortest:
-					shortest = dist
-			self.move(shortest)
-		else:
-			self.randomStep()
+		loc = self.location
+		perim = [(loc[0]+1,loc[1]+1),(loc[0]+1,loc[1]-1),(loc[0]-1,loc[1]+1),(loc[0]+1, loc[1]+1)]
+		self.lineOfSightAbstract(billy, perim)
 
 class knight(guard):
 	"""
