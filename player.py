@@ -300,7 +300,7 @@ class billy(player):
 
 		return points
 
-	def smartUpdate(self, p=.04): # p is (100/5)/border+1
+	def smartUpdate(self, l=False, p=0.04): # p is (100/5)/border+1
 		if not(self.location == (0,0)):
 			perimeter = self.generatePerimeter()
 			points = self.closestPerimsToBorder()
@@ -318,52 +318,19 @@ class billy(player):
 			perimeter.extend(points)
 			perimProb.extend(pointProb)
 
-			index = int(numpy.random.choice(8, 1, p=perimProb))
-			loc = perimeter[index]
-			self.location = loc
-
-		else:
-			self.randomStep()
-	"""
-	def smartUpdateOld(self, l=False, p=4.1667):
-		if not(self.location == (0,0)):
-			perimeter = self.generatePerimeter() # all points around billy
-			points = closestPerimsToBorder(perimeter, self.border) # All points that get extra probability
-			probMultiplier = distance(self.location, (0,0)) # depending on how far away the Billy is away from the center, chance the probabilities
-			pointProbability = probMultiplier*p #probability of choosing any "Points"
-
-			pointsProbList = []
-			perimProbList = []
-
-			for point in points: #update Perimeter so its all points but "points"
-				pointsProbList.append(pointProbability) # create list of probabilities for "points"
-				if point in perimeter:
-					perimeter.remove(point)
-
-			perimProbability = (1-len(points)*pointProbability)/(len(perimeter)) #Calculate the probability of all the other points
-			for perim in perimeter:
-				perimProbList.append(perimProbability) # probabilities of of the perimeter points that are "points"
-
-			perimProbList.extend(pointsProbList) # our list of probabilities
-			probabilities = perimProbList
-			perimeter.extend(points) # our list of all points
-
 			if not(l):
-				perimIndex = int(numpy.random.choice(len(perimeter), 1, p=probabilities)) # randomly choose an index according to probabilities
-				location = perimeter[perimIndex] # get new location
-				self.setLocation(location) # update
+				index = int(numpy.random.choice(8, 1, p=perimProb))
+				loc = perimeter[index]
+				self.location = loc
 			else:
-				returnList = [perimeter, probabilities]
-				return returnList
+				return [perimeter, perimProb]
 
 		else:
 			if not(l):
-				self.randomStep() # If billy is at the center, it doesn't matter
+				self.randomStep()
 			else:
 				return self.generatePerimeter()
-		"""
 
-	# Need to write this
 	def superBilly(self, guards):
 		"""
 		Super Billy
@@ -386,8 +353,6 @@ class billy(player):
 		else:
 			loc = rand.choice(common)
 			self.setLocation(loc)
-
-		
 
 	def abstractLineOfSight(self, guards):
 		"""

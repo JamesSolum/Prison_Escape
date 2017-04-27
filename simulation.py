@@ -23,14 +23,14 @@ def runSimulation():
     PATHGUARD  = True
     BISHOP     = True
     ROOK       = True
-    KNIGHT     = True # Should this have a line of sight?
-    TELEPORTER = True # no line of sight
+    KNIGHT     = True 
+    TELEPORTER = True 
 
     ## Powers ##
     BILLY_SPRINT = False
-    SMART_BILLY  = True
+    SMART_BILLY  = False
     BILLY_LOS    = False 
-    BILLY_SUPER  = False # not implemented yet, both Smart and LOS
+    BILLY_SUPER  = False
     WEAPON       = False 
 
     GUARD_LOS       = False 
