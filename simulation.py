@@ -28,7 +28,7 @@ def runSimulation():
 
     ## Powers ##
     BILLY_SPRINT = False
-    SMART_BILLY  = False# Fix probabilities
+    SMART_BILLY  = True
     BILLY_LOS    = False 
     BILLY_SUPER  = False # not implemented yet, both Smart and LOS
     WEAPON       = False 
@@ -83,8 +83,7 @@ def runSimulation():
             billy.lineOfSight(guards)
             billy.weaponCheck(guards, p=WEAPON_PROB)
         if BILLY_SUPER:
-            raise Exception("Super Billy is not implemented yet")
-            billy.super() # Not implemented
+            billy.superBilly(guards) 
             billy.weaponCheck(guards, p=WEAPON_PROB)
         else:
             billy.randomStep()
@@ -153,6 +152,7 @@ def runSimulation():
         quartile4 = p.quartileAlarm(QUARTILE_4_LOCATION, QUARTILE_4_TRIGGER)
         quartileAlarms.extend((quartile1, quartile2, quartile3, quartile4))
 
+    # Running Updates
     while(not(billy.CAUGHT) and not(billy.OutOfBounds)):
         # Alarm Set up
         if CENTER_ALARM:
@@ -180,11 +180,8 @@ def runSimulation():
             billyUpdate(billy, Guards)
 
         checkCaught(billy, Guards)
-
     
-    #print("Escaped:", billy.OutOfBounds)
-   # print("Caught:", billy.CAUGHT)
-    
+    # Final Check
     if billy.CAUGHT:
         return 0
     if billy.OutOfBounds:
@@ -192,7 +189,7 @@ def runSimulation():
 
 def main():
 
-    Sims = 10
+    Sims = 1
 
     if len(argv) > 1:
         SIMULATION_ITERATIONS = int(argv[1])
