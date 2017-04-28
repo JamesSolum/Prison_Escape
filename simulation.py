@@ -20,17 +20,17 @@ def runSimulation():
     ## Players ##
     BILLY      = True # Lol don't change this one
     PERIMGUARD = True
-    PATHGUARD  = True
+    PATHGUARD  = False
     BISHOP     = True
     ROOK       = True
-    KNIGHT     = True # Should this have a line of sight?
-    TELEPORTER = True # no line of sight
+    KNIGHT     = True 
+    TELEPORTER = True
 
     ## Powers ##
     BILLY_SPRINT = False
-    SMART_BILLY  = False# Fix probabilities
-    BILLY_LOS    = False 
-    BILLY_SUPER  = False # not implemented yet, both Smart and LOS
+    SMART_BILLY  = False
+    BILLY_LOS    = False
+    BILLY_SUPER  = False
     WEAPON       = False 
 
     GUARD_LOS       = False 
@@ -62,7 +62,7 @@ def runSimulation():
     SQUARE_GUARD_PATROL_BORDER = 5
     GUARD_PATH = [(1,1),(2,1),(1,2),(2,2),(1,3),(0,4),(0,3),(-1,2),(-1,1),(-1,0),(-1,-1),(0,-1)]
     CHANGE_IN_PROB = 0.1
-    WEAPON_PROB = 0.1
+    WEAPON_PROB = 0.8
     ######################################################
 
     Guards = []
@@ -83,10 +83,9 @@ def runSimulation():
             billy.lineOfSight(guards)
             billy.weaponCheck(guards, p=WEAPON_PROB)
         if BILLY_SUPER:
-            raise Exception("Super Billy is not implemented yet")
-            billy.super() # Not implemented
+            billy.superBilly(guards) 
             billy.weaponCheck(guards, p=WEAPON_PROB)
-        else:
+        elif not(SMART_BILLY or BILLY_LOS or BILLY_SUPER):
             billy.randomStep()
             billy.weaponCheck(guards, p=WEAPON_PROB)
 
@@ -109,8 +108,9 @@ def runSimulation():
 
     def checkCaught(billy, guards):
         billLoc = billy.location
-
+        #print("Billy:", billLoc)
         for guard in guards:
+          #  print("     guard:", guard.location)
             if guard.location == billLoc:
                 billy.CAUGHT = True
 
@@ -153,6 +153,7 @@ def runSimulation():
         quartile4 = p.quartileAlarm(QUARTILE_4_LOCATION, QUARTILE_4_TRIGGER)
         quartileAlarms.extend((quartile1, quartile2, quartile3, quartile4))
 
+    # Running Updates
     while(not(billy.CAUGHT) and not(billy.OutOfBounds)):
         # Alarm Set up
         if CENTER_ALARM:
@@ -180,11 +181,8 @@ def runSimulation():
             billyUpdate(billy, Guards)
 
         checkCaught(billy, Guards)
-
     
-    #print("Escaped:", billy.OutOfBounds)
-   # print("Caught:", billy.CAUGHT)
-    
+    # Final Check
     if billy.CAUGHT:
         return 0
     if billy.OutOfBounds:
@@ -192,7 +190,7 @@ def runSimulation():
 
 def main():
 
-    Sims = 10
+    Sims = 1
 
     if len(argv) > 1:
         SIMULATION_ITERATIONS = int(argv[1])

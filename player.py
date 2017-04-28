@@ -54,6 +54,51 @@ def distance(t1, t2):
 
 	return math.sqrt( (x2 - x1)**2 + (y2 - y1)**2)
 
+def borderPoint(loc, border):
+	"""
+	Border Point
+
+	Generates a list of border points that are closest to the given location
+	"""
+	distances =[]
+	closest =[]
+	options = [(loc[0], border), (loc[0], -border), (border, loc[1]), (-border, loc[1]), (border, border), (-border, -border), (border, -border), (-border, border)]
+
+	for point in options:
+		dist = distance(loc, point)
+		distances.append(dist)
+	distances.sort()
+	closest.append(distances[0])
+
+	for i in range(1,len(distances)-1):
+		if distances[i] == closest[0]:
+			closest.append(distances[i])
+		else:
+			break
+	return closest
+
+def closestPerimsToBorder(perim, border):
+	allDistances = []
+	points = []
+
+	for loc in perim:
+		options = [(loc[0], border), (loc[0], -border), (border, loc[1]), (-border, loc[1]), (border, border), (-border, -border), (border, -border), (-border, border)]
+		shortestDist = float("inf")
+		for op in options:
+			dist = distance(op, loc)
+			if dist < shortestDist:
+				shortestDist = dist
+		allDistances.append(shortestDist) # The distance between each perimeter point and its closest border is now stored 
+	x = min(allDistances) # minimum value
+	index = allDistances.index(x) # index for smallest value
+	points.append(perim[index])
+
+	for i in range(index+1,len(allDistances)-1):
+		if allDistances[i] == allDistances[index]:
+			points.append(perim[i])
+
+	return points
+
 #### Class ####
 
 class player(object):
@@ -87,7 +132,11 @@ class player(object):
 		resets location to loc:
 			loc   tuple
 		"""
+		border = self.border
 		self.location = loc
+
+		if abs(loc[0]) > border or abs(loc[1]) > border:
+			self.OutOfBounds = True
 
 	def move(self, loc):
 		"""
@@ -173,8 +222,9 @@ class billy(player):
 			return self.CAUGHT
 		else:
 			loc = rand.choice(options)
-			self.setLocation(loc)# Used in Line of Sight # Having an issue with this function
+			self.setLocation(loc)
 			return self.CAUGHT
+			#return loc# Used in Line of Sight # Having an issue with this function
 
 	def randomMove(self, maxStep):
 		"""
@@ -200,17 +250,7 @@ class billy(player):
 		"""
 		self.randomMove(1)
 
-	def randomSprint(self):
-		"""
-		Random Spring
-
-		Randomly move Billy two steps at a time
-		Cannot move (0,0)
-		"""
-		self.randomStep()
-		self.randomStep()
-
-	def smartUpdate(self, increment=0.1, subtract=0.05):
+	def smartUpdateOld(self, increment=0.1, subtract=0.05):
 		"""
 		Smart Update
 
@@ -242,15 +282,83 @@ class billy(player):
 		else:
 			self.randomStep()
 
-	# Need to write this
-	def superBilly(self):
+	def closestPerimsToBorder(self):
+		perim = self.generatePerimeter()
+		border = self.border
+		allDistances = []
+		points = []
+
+		for loc in perim:
+			options = [(loc[0], border), (loc[0], -border), (border, loc[1]), (-border, loc[1]), (border, border), (-border, -border), (border, -border), (-border, border)]
+			shortestDist = float("inf")
+			for op in options:
+				dist = distance(op, loc)
+				if dist < shortestDist:
+					shortestDist = dist
+			allDistances.append(shortestDist) # The distance between each perimeter point and its closest border is now stored 
+		x = min(allDistances) # minimum value
+		index = allDistances.index(x) # index for smallest value
+		points.append(perim[index])
+
+		for i in range(index+1,len(allDistances)):
+			if allDistances[i] == allDistances[index]:
+				points.append(perim[i])
+
+		return points
+
+	def smartUpdate(self, l=False, p=0.04): # p is (100/5)/border+1
+		if not(self.location == (0,0)):
+			perimeter = self.generatePerimeter()
+			points = self.closestPerimsToBorder()
+			
+			pointProb = []
+
+			for point in points:
+				perimeter.remove(point) # remove point from perimeter
+				multiplier = max(abs(point[0]), abs(point[1])) -1 # because at (0,0) there is no probability
+				prob = multiplier*p # find probability
+				pointProb.append(prob) # add to list
+
+			perimProb = [(1-sum(pointProb))/(len(perimeter))]*len(perimeter)
+
+			perimeter.extend(points)
+			perimProb.extend(pointProb)
+
+			if not(l):
+				index = int(numpy.random.choice(8, 1, p=perimProb))
+				loc = perimeter[index]
+				self.location = loc
+			else:
+				return [perimeter, perimProb]
+
+		else:
+			if not(l):
+				self.randomStep()
+			else:
+				return self.generatePerimeter()
+
+	def superBilly(self, guards):
 		"""
 		Super Billy
 
-		Combines all of Billy's abilities to update his position
+		Combines smart Update and Line of Sigth
 		"""
+		los = self.abstractLineOfSight(guards) #available line of sight locations
+		smart = self.smartUpdate(l=True) #available smart locations
 
-		return 1 
+		common = []
+		probabilities = []
+
+		for index in range(0, len(smart[0])-1): # create a list of all common points
+			if smart[0][index] in los:
+				common.append(smart[0][index]) # update list of common points
+				probabilities.append(smart[1][index]) # update list of probabilities
+
+		if not(common):
+			self.lineOfSight(guards)
+		else:
+			loc = rand.choice(common)
+			self.setLocation(loc)
 
 	def abstractLineOfSight(self, guards):
 		"""
@@ -272,38 +380,6 @@ class billy(player):
 					perim.remove(spot)
 
 		return perim
-
-	"""
-	def abstractLineOfSightOLD(self, walk, guard, rook, bishop, knight, teleporter): # This is more complicated than I want it to be.  Maybe use the new Generate Perimeter Function.
-		
-
-		loc = self.location
-		x = loc[0]
-		y = loc[1]
-		checks = [(x, y - walk), (x, y + walk), (x + walk, y -walk), (x + walk, y), (x + walk, y +walk), (x-walk, y-walk), (x-walk, y), (x-walk, y+walk)]
-		positions = [guard.location, rook.location, rook.location, bishop.location, knight.location, teleporter.location]
-		guards = []
-
-		for pos in positions:
-			for check in checks:
-				if pos == check:
-					guards.append(pos)
-
-		noGo = []
-		for position in guards:
-			if x == position[0]:
-				noGo.append((position[0]+1 , position[1]))
-				noGo.append((position[0]-1 , position[1]))
-			if y == position [1]:
-				noGo.append(position) 
-				noGo.append((position[0], position[1] + 1))
-				noGo.append((position[0], position[1]-1))
-
-        # Fix options
-		for fail in noGo:
-			if fail in checks:
-				checks.remove(fail)
-	"""
 
 	def lineOfSight(self, guards):
 		"""
@@ -328,13 +404,6 @@ class billy(player):
 		options = self.abstractLineOfSight(2, guard, rook, bishop, knight, teleporter)
 		self.caughtCheck(CAUGHT, options)# May need to fix this.  Sprint is two movements, not jumping two squares. 
 		"""
-
-	def caughtCheck(self, options):
-		if not options:
-			self.CAUGHT = True
-		else:
-			move = rand.choice(options)
-			self.setLocation(move)
 
 	def weaponCheck(self, guard, p=0.1):
 		"""
