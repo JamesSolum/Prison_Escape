@@ -132,7 +132,11 @@ class player(object):
 		resets location to loc:
 			loc   tuple
 		"""
+		border = self.border
 		self.location = loc
+
+		if abs(loc[0]) > border or abs(loc[1]) > border:
+			self.OutOfBounds = True
 
 	def move(self, loc):
 		"""
@@ -218,7 +222,9 @@ class billy(player):
 			return self.CAUGHT
 		else:
 			loc = rand.choice(options)
-			return loc# Used in Line of Sight # Having an issue with this function
+			self.setLocation(loc)
+			return self.CAUGHT
+			#return loc# Used in Line of Sight # Having an issue with this function
 
 	def randomMove(self, maxStep):
 		"""
@@ -384,8 +390,7 @@ class billy(player):
     	If unable to move Billy the CAUGHT parameter is changed to True
 		"""
 		options = self.abstractLineOfSight(guards)
-		loc = self.caughtCheck(options)
-		self.setLocation(loc)
+		self.caughtCheck(options)
 		"""
 	def lineOfSight_Sprint(self, CAUGHT, guard, rook, bishop, knight, teleporter):
 		"""
